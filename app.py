@@ -4,12 +4,21 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from openai import OpenAI
 from retriever import retrieve_chunks
+from fastapi.middleware.cors import CORSMiddleware
 
 # Render NO necesita .env si usas Environment Variables,
 # pero esto ayuda localmente:
 load_dotenv()
 
 app = FastAPI(title="RAG API", version="1.0.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # temporal para pruebas
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 CHAT_MODEL = os.getenv("CHAT_MODEL", "gpt-4o-mini")
@@ -72,4 +81,5 @@ def chat(req: ChatRequest):
 
     except Exception as e:
         # En prod podrías loggear mejor; por ahora devolvemos mensaje genérico
+
         raise HTTPException(status_code=500, detail=f"Error procesando la consulta: {str(e)}")
