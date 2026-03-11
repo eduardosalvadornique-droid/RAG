@@ -5,21 +5,35 @@ from embeddings import get_embedding
 
 load_dotenv()
 
-supabase = create_client(
-    os.getenv("SUPABASE_URL"),
-    os.getenv("SUPABASE_KEY")
-)
+_supabase = None
+
+def get_supabase():
+    global _supabase
+    if _supabase is not None:
+        return _supabase
+
+    url = os.getenv("SUPABASE_URL")
+    key = os.getenv("SUPABASE_KEY")
+
+    if not url:
+        raise RuntimeError("SUPABASE_URL no está configurada.")
+    if not key:
+        raise RuntimeError("SUPABASE_KEY no está configurada.")
+
+    # Quita espacios/saltos por si copiaste con newline
+    url = url.strip()
+    key = key.strip()
+
+    _supabase = create_client(url, key)
+    return _supabase
+
 
 def retrieve_chunks(query: str, top_k: int = 5, threshold: float = 0.70):
-    """
-    1) Genera embedding de la pregunta
-    2) Consulta Supabase vía RPC
-    3) Devuelve los chunks más similares
-    """
+    supabase = get_supabase()
 
     query_vector = get_embedding(query)
 
-    response = supabase.rpc(
+    resp = supabase.rpc(
         "match_documents",
         {
             "query_embedding": query_vector,
@@ -28,4 +42,4 @@ def retrieve_chunks(query: str, top_k: int = 5, threshold: float = 0.70):
         }
     ).execute()
 
-    return response.data or []
+    return resp.data or []
